@@ -78,7 +78,7 @@ func (connectResult *ConnectResult) errorMessages() map[string]string {
 // will be stored in RHSMConnectError.
 func (connectResult *ConnectResult) TryRegisterRHSM(ctx *cli.Context) {
 	slog.Info("Registering the system with Red Hat Subscription Management")
-	returnedMsg, err := rhsm.RegisterRHSM(ctx, features.ContentFeature.Enabled)
+	returnedMsg, err := rhsm.RegisterRHSM(ctx, features.ContentFeature.WantEnabled)
 	if err != nil {
 		connectResult.RHSMConnected = false
 		connectResult.RHSMConnectError = fmt.Sprintf("cannot connect to Red Hat Subscription Management: %s", err)
@@ -99,7 +99,7 @@ func (connectResult *ConnectResult) TryRegisterRHSM(ctx *cli.Context) {
 		connectResult.RHSMConnected = true
 		slog.Info(returnedMsg)
 		ui.Printf("%s[%v] %s\n", ui.Indent.Small, ui.Icons.Ok, returnedMsg)
-		if features.ContentFeature.Enabled {
+		if features.ContentFeature.WantEnabled {
 			connectResult.Features.Content.Successful = true
 			infoMsg := "Red Hat repository file generated"
 			slog.Info(infoMsg)
@@ -116,7 +116,7 @@ func (connectResult *ConnectResult) TryRegisterRHSM(ctx *cli.Context) {
 // If this fails, then Features.Analytics.Successful will be set to false, and the
 // error message will be stored in Features.Analytics.Error.
 func (connectResult *ConnectResult) TryRegisterInsightsClient() {
-	if !features.AnalyticsFeature.Enabled {
+	if !features.AnalyticsFeature.WantEnabled {
 		connectResult.Features.Analytics.Successful = false
 		slog.Info("Connecting to Red Hat Lightspeed (formerly Insights) disabled (analytics feature disabled)")
 		ui.Printf("%s[ ] Analytics ... Connecting to Red Hat Lightspeed (formerly Insights) disabled\n", ui.Indent.Medium)
@@ -157,7 +157,7 @@ func (connectResult *ConnectResult) TryRegisterInsightsClient() {
 // If this fails, then Features.RemoteManagement.Successful will be set to false, and the
 // error message will be stored in Features.RemoteManagement.Error.
 func (connectResult *ConnectResult) TryActivateServices() {
-	if !features.ManagementFeature.Enabled {
+	if !features.ManagementFeature.WantEnabled {
 		connectResult.Features.RemoteManagement.Successful = false
 		if features.ManagementFeature.Reason != "" {
 			infoMsg := fmt.Sprintf("Starting %s service disabled (%s)", ServiceName, features.ManagementFeature.Reason)
@@ -294,7 +294,7 @@ func beforeConnectAction(ctx *cli.Context) error {
 		return cli.Exit(err.Error(), ExitCodeUsage)
 	}
 
-	if !features.ContentFeature.Enabled && len(contentTemplates) > 0 {
+	if !features.ContentFeature.WantEnabled && len(contentTemplates) > 0 {
 		return cli.Exit(
 			"'--content-template' can not be used together with '--disable-feature content'",
 			ExitCodeUsage,
@@ -349,7 +349,7 @@ func connectAction(ctx *cli.Context) error {
 
 	var featuresStr []string
 	for _, feature := range features.KnownFeatures {
-		if feature.Enabled {
+		if feature.WantEnabled {
 			if ui.IsOutputMachineReadable() {
 				switch feature.ID {
 				case "content":

@@ -17,8 +17,12 @@ type RhcFeature struct {
 	ID string
 	// Description is human-readable description of the feature.
 	Description string
-	// Enabled represents the state of feature
-	Enabled bool
+	// WantEnabled
+	WantEnabled bool
+	// IsEnabledFunc is a callback function, and it returns true if the feature is enabled.
+	IsEnabledFunc func() bool
+	// IsEnabledInConf is a callback function, and it returns true if the feature is enabled in configuration.
+	IsEnabledInConf func() bool
 	// Reason for disabling feature
 	Reason string
 	// Requires is a list of IDs of other features that are required for this feature. RhcFeature
@@ -52,12 +56,31 @@ func listKnownFeatureIds() []string {
 	return ids
 }
 
+// MapKnownFeatureIds is helper function, and it returns the map of IDs of known feature to the feature itself
+func MapKnownFeatureIds() map[string]*RhcFeature {
+	featureMap := map[string]*RhcFeature{}
+	for _, feature := range KnownFeatures {
+		featureMap[feature.ID] = feature
+	}
+	return featureMap
+}
+
 // ContentFeature allows to enable/disable content provided by Red Hat. It is
 // typically set of RPM repositories generated in /etc/yum.repos.d/redhat.repo
 var ContentFeature = RhcFeature{
 	ID:          "content",
 	Requires:    []*RhcFeature{},
-	Enabled:     func() bool { return true }(),
+	WantEnabled: func() bool { return true }(),
+	IsEnabledFunc: func() bool {
+		slog.Debug("checking if 'content' feature is enabled not implemented")
+		return true
+	},
+	IsEnabledInConf: func() bool {
+		if conf.Config.Features.Content != nil {
+			return *conf.Config.Features.Content
+		}
+		return false
+	},
 	Description: "Get access to RHEL content",
 	EnableFunc: func(ctx *cli.Context) error {
 		slog.Debug("enabling 'content' feature not implemented")
@@ -73,7 +96,17 @@ var ContentFeature = RhcFeature{
 var AnalyticsFeature = RhcFeature{
 	ID:          "analytics",
 	Requires:    []*RhcFeature{&ContentFeature},
-	Enabled:     func() bool { return true }(),
+	WantEnabled: func() bool { return true }(),
+	IsEnabledFunc: func() bool {
+		slog.Debug("checking if 'analytics' feature is enabled not implemented")
+		return true
+	},
+	IsEnabledInConf: func() bool {
+		if conf.Config.Features.Analytics != nil {
+			return *conf.Config.Features.Analytics
+		}
+		return false
+	},
 	Description: "Enable data collection for Red Hat Lightspeed (formerly Insights)",
 	EnableFunc: func(ctx *cli.Context) error {
 		slog.Debug("enabling 'analytics' feature not implemented")
@@ -90,7 +123,17 @@ var AnalyticsFeature = RhcFeature{
 var ManagementFeature = RhcFeature{
 	ID:          "remote-management",
 	Requires:    []*RhcFeature{&ContentFeature, &AnalyticsFeature},
-	Enabled:     func() bool { return true }(),
+	WantEnabled: func() bool { return true }(),
+	IsEnabledFunc: func() bool {
+		slog.Debug("checking if 'remote-management' feature is enabled not implemented")
+		return true
+	},
+	IsEnabledInConf: func() bool {
+		if conf.Config.Features.Analytics != nil {
+			return *conf.Config.Features.Analytics
+		}
+		return false
+	},
 	Description: "Remote management",
 	EnableFunc: func(ctx *cli.Context) error {
 		slog.Debug("enabling 'management' feature not implemented")
@@ -227,7 +270,7 @@ func ValidateSelectedFeatures(enabledFeaturesIDs *[]string, disabledFeaturesIDs 
 			hint := strings.Join(supportedIds, ",")
 			return fmt.Errorf("cannot disable feature \"%s\": no such feature exists (%s)", featureId, hint)
 		}
-		disabledFeature.Enabled = false
+		disabledFeature.WantEnabled = false
 	}
 
 	// Then check enabled features, and it is more tricky, because:
@@ -260,13 +303,13 @@ func ValidateSelectedFeatures(enabledFeaturesIDs *[]string, disabledFeaturesIDs 
 				}
 			}
 		}
-		enabledFeature.Enabled = true
+		enabledFeature.WantEnabled = true
 	}
 
 	for _, feature := range KnownFeatures {
 		for _, requiredFeature := range feature.Requires {
-			if !requiredFeature.Enabled {
-				feature.Enabled = false
+			if !requiredFeature.WantEnabled {
+				feature.WantEnabled = false
 				feature.Reason = fmt.Sprintf("required feature \"%s\" is disabled", requiredFeature.ID)
 			}
 		}
