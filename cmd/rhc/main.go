@@ -21,6 +21,8 @@ const (
 	cliAPIServer = "base-url"
 )
 
+const FeaturesConfigFilePath = "/etc/rhc/config.toml.d/01-features.toml"
+
 // mainAction is triggered in the case, when no sub-command is specified
 func mainAction(c *cli.Context) error {
 	type GenerationFunc func() (string, error)
@@ -101,7 +103,7 @@ func beforeAction(c *cli.Context) error {
 	// Load features from drop-in config file and set them in conf.Config
 	// TODO: When drop-in configuration is fully supported, manually loading features
 	// may be unnecessary.
-	featuresConfig, err := features.GetFeaturesFromFile("/etc/rhc/config.toml.d/01-features.toml")
+	featuresConfig, err := features.GetFeaturesFromFile(FeaturesConfigFilePath)
 	if err != nil {
 		slog.Warn(fmt.Sprintf("failed to get features from drop-in config file: %s", err.Error()))
 	}

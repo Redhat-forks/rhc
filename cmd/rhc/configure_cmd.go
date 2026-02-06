@@ -79,7 +79,7 @@ func beforeShowFeaturesAction(ctx *cli.Context) error {
 
 // showFeaturesAction shows features
 func showFeaturesAction(ctx *cli.Context) error {
-	featuresConfig, err := features.GetFeaturesFromFile("/etc/rhc/config.toml.d/01-features.toml")
+	featuresConfig, err := features.GetFeaturesFromFile(FeaturesConfigFilePath)
 	if err != nil {
 		slog.Warn(fmt.Sprintf("failed to get features from drop-in config file: %s", err.Error()))
 		return err
