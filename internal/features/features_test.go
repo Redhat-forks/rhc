@@ -395,106 +395,106 @@ func TestConsolidateSelectedFeatures(t *testing.T) {
 func TestValidateSelectedFeatures(t *testing.T) {
 	// Reset feature states before each test
 	resetFeatures := func() {
-		ContentFeature.Enabled = true
-		AnalyticsFeature.Enabled = true
-		ManagementFeature.Enabled = true
+		ContentFeature.WantEnabled = true
+		AnalyticsFeature.WantEnabled = true
+		ManagementFeature.WantEnabled = true
 	}
 
 	tests := []struct {
-		description      string
-		enabledFeatures  []string
-		disabledFeatures []string
-		expectError      bool
-		errorContains    string
-		validateState    func(*testing.T)
+		description          string
+		wantEnabledFeatures  []string
+		wantDisabledFeatures []string
+		expectError          bool
+		errorContains        string
+		validateState        func(*testing.T)
 	}{
 		{
-			description:      "validate selected features where all features enabled",
-			enabledFeatures:  []string{"content", "analytics", "remote-management"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where all features enabled",
+			wantEnabledFeatures:  []string{"content", "analytics", "remote-management"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !ContentFeature.Enabled {
+				if !ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be enabled")
 				}
-				if !AnalyticsFeature.Enabled {
+				if !AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be enabled")
 				}
-				if !ManagementFeature.Enabled {
+				if !ManagementFeature.WantEnabled {
 					t.Error("ManagementFeature should be enabled")
 				}
 			},
 		},
 		{
-			description:      "validate selected features where all features disabled",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"content", "analytics", "remote-management"},
-			expectError:      false,
+			description:          "validate selected features where all features disabled",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"content", "analytics", "remote-management"},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if ContentFeature.Enabled {
+				if ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be disabled")
 				}
-				if AnalyticsFeature.Enabled {
+				if AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be disabled")
 				}
-				if ManagementFeature.Enabled {
+				if ManagementFeature.WantEnabled {
 					t.Error("ManagementFeature should be disabled")
 				}
 			},
 		},
 		{
-			description:      "validate selected features where unknown feature in enabled list",
-			enabledFeatures:  []string{"unknown-feature"},
-			disabledFeatures: []string{},
-			expectError:      true,
-			errorContains:    "no such feature exists",
+			description:          "validate selected features where unknown feature in enabled list",
+			wantEnabledFeatures:  []string{"unknown-feature"},
+			wantDisabledFeatures: []string{},
+			expectError:          true,
+			errorContains:        "no such feature exists",
 		},
 		{
-			description:      "validate selected features where unknown feature in disabled list",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"unknown-feature"},
-			expectError:      true,
-			errorContains:    "no such feature exists",
+			description:          "validate selected features where unknown feature in disabled list",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"unknown-feature"},
+			expectError:          true,
+			errorContains:        "no such feature exists",
 		},
 		{
-			description:      "validate selected features where feature in both enabled and disabled",
-			enabledFeatures:  []string{"content"},
-			disabledFeatures: []string{"content"},
-			expectError:      true,
-			errorContains:    "explicitly disabled",
+			description:          "validate selected features where feature in both enabled and disabled",
+			wantEnabledFeatures:  []string{"content"},
+			wantDisabledFeatures: []string{"content"},
+			expectError:          true,
+			errorContains:        "explicitly disabled",
 		},
 		{
-			description:      "validate selected features where management requires content - content disabled",
-			enabledFeatures:  []string{"remote-management"},
-			disabledFeatures: []string{"content"},
-			expectError:      true,
-			errorContains:    "required feature",
+			description:          "validate selected features where management requires content - content disabled",
+			wantEnabledFeatures:  []string{"remote-management"},
+			wantDisabledFeatures: []string{"content"},
+			expectError:          true,
+			errorContains:        "required feature",
 		},
 		{
-			description:      "validate selected features where management requires analytics - analytics disabled",
-			enabledFeatures:  []string{"remote-management"},
-			disabledFeatures: []string{"analytics"},
-			expectError:      true,
-			errorContains:    "required feature",
+			description:          "validate selected features where management requires analytics - analytics disabled",
+			wantEnabledFeatures:  []string{"remote-management"},
+			wantDisabledFeatures: []string{"analytics"},
+			expectError:          true,
+			errorContains:        "required feature",
 		},
 		{
-			description:      "validate selected features where management enabled with dependencies",
-			enabledFeatures:  []string{"content", "analytics", "remote-management"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where management enabled with dependencies",
+			wantEnabledFeatures:  []string{"content", "analytics", "remote-management"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !ManagementFeature.Enabled {
+				if !ManagementFeature.WantEnabled {
 					t.Error("ManagementFeature should be enabled when dependencies are met")
 				}
 			},
 		},
 		{
-			description:      "validate selected features where disable dependency affects dependent feature",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"content"},
-			expectError:      false,
+			description:          "validate selected features where disable dependency affects dependent feature",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"content"},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if ManagementFeature.Enabled {
+				if ManagementFeature.WantEnabled {
 					t.Error("ManagementFeature should be disabled when Content is disabled")
 				}
 				if ManagementFeature.Reason == "" {
@@ -503,52 +503,52 @@ func TestValidateSelectedFeatures(t *testing.T) {
 			},
 		},
 		{
-			description:      "validate selected features where enable only content - no dependencies",
-			enabledFeatures:  []string{"content"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where enable only content - no dependencies",
+			wantEnabledFeatures:  []string{"content"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !ContentFeature.Enabled {
+				if !ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be enabled")
 				}
 			},
 		},
 		{
-			description:      "validate selected features where enable analytics and content - valid dependencies",
-			enabledFeatures:  []string{"content", "analytics"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where enable analytics and content - valid dependencies",
+			wantEnabledFeatures:  []string{"content", "analytics"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !ContentFeature.Enabled {
+				if !ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be enabled")
 				}
-				if !AnalyticsFeature.Enabled {
+				if !AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be enabled")
 				}
 			},
 		},
 		{
-			description:      "validate selected features where analytics requires content - content not explicitly enabled",
-			enabledFeatures:  []string{"analytics"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where analytics requires content - content not explicitly enabled",
+			wantEnabledFeatures:  []string{"analytics"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !AnalyticsFeature.Enabled {
+				if !AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be enabled")
 				}
 				// Content should remain in its default state (not explicitly set)
 			},
 		},
 		{
-			description:      "validate selected features where disable content - analytics should be affected",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"content"},
-			expectError:      false,
+			description:          "validate selected features where disable content - analytics should be affected",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"content"},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if ContentFeature.Enabled {
+				if ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be disabled")
 				}
-				if AnalyticsFeature.Enabled {
+				if AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be disabled due to content being disabled")
 				}
 				if AnalyticsFeature.Reason == "" {
@@ -557,15 +557,15 @@ func TestValidateSelectedFeatures(t *testing.T) {
 			},
 		},
 		{
-			description:      "validate selected features where disable analytics only - management should be affected",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"analytics"},
-			expectError:      false,
+			description:          "validate selected features where disable analytics only - management should be affected",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"analytics"},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if AnalyticsFeature.Enabled {
+				if AnalyticsFeature.WantEnabled {
 					t.Error("AnalyticsFeature should be disabled")
 				}
-				if ManagementFeature.Enabled {
+				if ManagementFeature.WantEnabled {
 					t.Error("ManagementFeature should be disabled due to analytics being disabled")
 				}
 				if ManagementFeature.Reason == "" {
@@ -574,63 +574,63 @@ func TestValidateSelectedFeatures(t *testing.T) {
 			},
 		},
 		{
-			description:      "validate selected features where multiple unknown features in enabled list",
-			enabledFeatures:  []string{"feature1", "feature2"},
-			disabledFeatures: []string{},
-			expectError:      true,
-			errorContains:    "no such feature exists",
+			description:          "validate selected features where multiple unknown features in enabled list",
+			wantEnabledFeatures:  []string{"feature1", "feature2"},
+			wantDisabledFeatures: []string{},
+			expectError:          true,
+			errorContains:        "no such feature exists",
 		},
 		{
-			description:      "validate selected features where multiple unknown features in disabled list",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{"feature1", "feature2"},
-			expectError:      true,
-			errorContains:    "no such feature exists",
+			description:          "validate selected features where multiple unknown features in disabled list",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{"feature1", "feature2"},
+			expectError:          true,
+			errorContains:        "no such feature exists",
 		},
 		{
-			description:      "validate selected features where enable analytics without content - content disabled",
-			enabledFeatures:  []string{"analytics"},
-			disabledFeatures: []string{"content"},
-			expectError:      true,
-			errorContains:    "required feature",
+			description:          "validate selected features where enable analytics without content - content disabled",
+			wantEnabledFeatures:  []string{"analytics"},
+			wantDisabledFeatures: []string{"content"},
+			expectError:          true,
+			errorContains:        "required feature",
 		},
 		{
-			description:      "validate selected features where enable management with content but analytics disabled",
-			enabledFeatures:  []string{"content", "remote-management"},
-			disabledFeatures: []string{"analytics"},
-			expectError:      true,
-			errorContains:    "required feature",
+			description:          "validate selected features where enable management with content but analytics disabled",
+			wantEnabledFeatures:  []string{"content", "remote-management"},
+			wantDisabledFeatures: []string{"analytics"},
+			expectError:          true,
+			errorContains:        "required feature",
 		},
 		{
-			description:      "validate selected features where disable all explicitly and try to enable management",
-			enabledFeatures:  []string{"remote-management"},
-			disabledFeatures: []string{"content", "analytics", "remote-management"},
-			expectError:      true,
-			errorContains:    "explicitly disabled",
+			description:          "validate selected features where disable all explicitly and try to enable management",
+			wantEnabledFeatures:  []string{"remote-management"},
+			wantDisabledFeatures: []string{"content", "analytics", "remote-management"},
+			expectError:          true,
+			errorContains:        "explicitly disabled",
 		},
 		{
-			description:      "validate selected features where empty enabled and disabled lists",
-			enabledFeatures:  []string{},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where empty enabled and disabled lists",
+			wantEnabledFeatures:  []string{},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
 				// All features should remain in their default state
 			},
 		},
 		{
-			description:      "validate selected features where case sensitive - wrong case for feature name",
-			enabledFeatures:  []string{"Content"},
-			disabledFeatures: []string{},
-			expectError:      true,
-			errorContains:    "no such feature exists",
+			description:          "validate selected features where case sensitive - wrong case for feature name",
+			wantEnabledFeatures:  []string{"Content"},
+			wantDisabledFeatures: []string{},
+			expectError:          true,
+			errorContains:        "no such feature exists",
 		},
 		{
-			description:      "validate selected features where enable content twice in list",
-			enabledFeatures:  []string{"content", "content"},
-			disabledFeatures: []string{},
-			expectError:      false,
+			description:          "validate selected features where enable content twice in list",
+			wantEnabledFeatures:  []string{"content", "content"},
+			wantDisabledFeatures: []string{},
+			expectError:          false,
 			validateState: func(t *testing.T) {
-				if !ContentFeature.Enabled {
+				if !ContentFeature.WantEnabled {
 					t.Error("ContentFeature should be enabled")
 				}
 			},
@@ -641,7 +641,7 @@ func TestValidateSelectedFeatures(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			resetFeatures()
 
-			err := ValidateSelectedFeatures(&test.enabledFeatures, &test.disabledFeatures)
+			err := ValidateSelectedFeatures(&test.wantEnabledFeatures, &test.wantDisabledFeatures)
 
 			if test.expectError && err == nil {
 				t.Errorf("expected error but got none")

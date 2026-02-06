@@ -46,17 +46,6 @@ func enableFeaturesAction(ctx *cli.Context) error {
 		slog.Debug(fmt.Sprintf("Trying to enable feature: %s", feature))
 	}
 
-	// Try to get the features from the drop-in config file
-	config, err := features.GetFeaturesFromFile(FeaturesConfigFilePath)
-	if err != nil {
-		slog.Warn(fmt.Sprintf("Failed to get features from drop-in config file: %s", err.Error()))
-		return cli.Exit(err, ExitCodeDataErr)
-	}
-	if config != nil {
-		slog.Debug(fmt.Sprintf("Features was successfully read from drop-in config file: %s", FeaturesConfigFilePath))
-		conf.Config.Features = *config
-	}
-
 	// Then check that enabled features are not in conflict with the configuration file
 	enabledFeatures, disabledFeatures, err = features.ConsolidateSelectedFeatures(
 		&conf.Config,
@@ -69,7 +58,8 @@ func enableFeaturesAction(ctx *cli.Context) error {
 	}
 
 	mapFeatures := features.MapKnownFeatureIds()
-	slog.Debug("Consolidated features")
+	slog.Debug("Features enabled using CLI arguments consolidated with configuration file")
+
 	// Try to enable the features
 	for _, featureId := range enabledFeatures {
 		feature := mapFeatures[featureId]
@@ -87,7 +77,8 @@ func enableFeaturesAction(ctx *cli.Context) error {
 			slog.Warn(fmt.Sprintf("failed to enable feature '%s': %s", featureId, err.Error()))
 		}
 	}
-	//
+
+	// Should we do anything with disabled features?
 	for _, featureId := range disabledFeatures {
 		feature := mapFeatures[featureId]
 		if feature == nil {
@@ -98,11 +89,11 @@ func enableFeaturesAction(ctx *cli.Context) error {
 			slog.Debug(fmt.Sprintf("Feature '%s' is already disabled", featureId))
 			continue
 		}
-		slog.Debug(fmt.Sprintf("Feature '%s' will be disabled", featureId))
-		err = feature.DisableFunc(ctx)
-		if err != nil {
-			slog.Warn(fmt.Sprintf("failed to disable feature '%s': %s", featureId, err.Error()))
-		}
+		//slog.Debug(fmt.Sprintf("Feature '%s' will be disabled", featureId))
+		//err = feature.DisableFunc(ctx)
+		//if err != nil {
+		//	slog.Warn(fmt.Sprintf("failed to disable feature '%s': %s", featureId, err.Error()))
+		//}
 	}
 
 	return nil
@@ -151,27 +142,56 @@ func beforeShowFeaturesAction(ctx *cli.Context) error {
 
 // showFeaturesAction shows features
 func showFeaturesAction(ctx *cli.Context) error {
-	featuresConfig, err := features.GetFeaturesFromFile(FeaturesConfigFilePath)
-	if err != nil {
-		slog.Warn(fmt.Sprintf("failed to get features from drop-in config file: %s", err.Error()))
-		return err
+	// content
+	if features.ContentFeature.IsEnabledFunc() {
+		slog.Debug("Content is enabled")
+	} else {
+		slog.Debug("Content is disabled")
 	}
-	if featuresConfig != nil {
-		if *featuresConfig.Content {
-			slog.Info("Content is enabled")
+	contentEnabled := features.ContentFeature.IsEnabledInConf()
+	if contentEnabled != nil {
+		if *contentEnabled {
+			slog.Debug("Content is enabled in configuration file")
 		} else {
-			slog.Info("Content is disabled")
+			slog.Debug("Content is disabled in configuration file")
 		}
-		if *featuresConfig.Analytics {
-			slog.Info("Analytics is enabled")
-		} else {
-			slog.Info("Analytics is disabled")
-		}
-		if *featuresConfig.Management {
-			slog.Info("Management is enabled")
-		} else {
-			slog.Info("Management is disabled")
-		}
+	} else {
+		slog.Debug("Content is not configured in configuration file")
 	}
+
+	// analytics
+	if features.AnalyticsFeature.IsEnabledFunc() {
+		slog.Debug("Analytics is enabled")
+	} else {
+		slog.Debug("Analytics is disabled")
+	}
+	analyticsEnabled := features.AnalyticsFeature.IsEnabledInConf()
+	if analyticsEnabled != nil {
+		if *analyticsEnabled {
+			slog.Debug("Analytics is enabled in configuration file")
+		} else {
+			slog.Debug("Analytics is disabled in configuration file")
+		}
+	} else {
+		slog.Debug("Analytics is not configured in configuration file")
+	}
+
+	// management
+	if features.ManagementFeature.IsEnabledFunc() {
+		slog.Debug("Management is enabled")
+	} else {
+		slog.Debug("Management is disabled")
+	}
+	managementEnabled := features.ManagementFeature.IsEnabledInConf()
+	if managementEnabled != nil {
+		if *managementEnabled {
+			slog.Debug("Management is enabled in configuration file")
+		} else {
+			slog.Debug("Management is disabled in configuration file")
+		}
+	} else {
+		slog.Debug("Management is not configured in configuration file")
+	}
+
 	return nil
 }

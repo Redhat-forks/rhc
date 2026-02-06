@@ -8,6 +8,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/redhatinsights/rhc/internal/conf"
+	"github.com/redhatinsights/rhc/internal/rhsm"
 	"github.com/urfave/cli/v2"
 )
 
@@ -22,7 +23,7 @@ type RhcFeature struct {
 	// IsEnabledFunc is a callback function, and it returns true if the feature is enabled.
 	IsEnabledFunc func() bool
 	// IsEnabledInConf is a callback function, and it returns true if the feature is enabled in configuration.
-	IsEnabledInConf func() bool
+	IsEnabledInConf func() *bool
 	// Reason for disabling feature
 	Reason string
 	// Requires is a list of IDs of other features that are required for this feature. RhcFeature
@@ -72,22 +73,23 @@ var ContentFeature = RhcFeature{
 	Requires:    []*RhcFeature{},
 	WantEnabled: func() bool { return true }(),
 	IsEnabledFunc: func() bool {
-		slog.Debug("checking if 'content' feature is enabled not implemented")
-		return true
-	},
-	IsEnabledInConf: func() bool {
-		if conf.Config.Features.Content != nil {
-			return *conf.Config.Features.Content
+		contentEnabled, err := rhsm.IsContentEnabled()
+		if err != nil {
+			slog.Warn(fmt.Sprintf("Failed to check if 'content' feature is enabled: %v", err))
+			return false
 		}
-		return false
+		return contentEnabled
+	},
+	IsEnabledInConf: func() *bool {
+		return conf.Config.Features.Content
 	},
 	Description: "Get access to RHEL content",
 	EnableFunc: func(ctx *cli.Context) error {
-		slog.Debug("enabling 'content' feature not implemented")
+		slog.Debug("Enabling 'content' feature not implemented")
 		return nil
 	},
 	DisableFunc: func(ctx *cli.Context) error {
-		slog.Debug("disabling 'content' feature not implemented")
+		slog.Debug("Disabling 'content' feature not implemented")
 		return nil
 	},
 }
@@ -98,14 +100,11 @@ var AnalyticsFeature = RhcFeature{
 	Requires:    []*RhcFeature{&ContentFeature},
 	WantEnabled: func() bool { return true }(),
 	IsEnabledFunc: func() bool {
-		slog.Debug("checking if 'analytics' feature is enabled not implemented")
+		slog.Debug("Checking if 'analytics' feature is enabled not implemented")
 		return true
 	},
-	IsEnabledInConf: func() bool {
-		if conf.Config.Features.Analytics != nil {
-			return *conf.Config.Features.Analytics
-		}
-		return false
+	IsEnabledInConf: func() *bool {
+		return conf.Config.Features.Analytics
 	},
 	Description: "Enable data collection for Red Hat Lightspeed (formerly Insights)",
 	EnableFunc: func(ctx *cli.Context) error {
@@ -125,22 +124,19 @@ var ManagementFeature = RhcFeature{
 	Requires:    []*RhcFeature{&ContentFeature, &AnalyticsFeature},
 	WantEnabled: func() bool { return true }(),
 	IsEnabledFunc: func() bool {
-		slog.Debug("checking if 'remote-management' feature is enabled not implemented")
+		slog.Debug("Checking if 'remote-management' feature is enabled not implemented")
 		return true
 	},
-	IsEnabledInConf: func() bool {
-		if conf.Config.Features.Analytics != nil {
-			return *conf.Config.Features.Analytics
-		}
-		return false
+	IsEnabledInConf: func() *bool {
+		return conf.Config.Features.Management
 	},
 	Description: "Remote management",
 	EnableFunc: func(ctx *cli.Context) error {
-		slog.Debug("enabling 'management' feature not implemented")
+		slog.Debug("Enabling 'management' feature not implemented")
 		return nil
 	},
 	DisableFunc: func(ctx *cli.Context) error {
-		slog.Debug("disabling 'management' feature not implemented")
+		slog.Debug("Disabling 'management' feature not implemented")
 		return nil
 	},
 }
@@ -151,7 +147,7 @@ var ManagementFeature = RhcFeature{
 func GetFeaturesFromFile(featuresFilePath string) (*conf.Features, error) {
 	if _, err := os.Stat(featuresFilePath); err != nil {
 		if os.IsNotExist(err) {
-			slog.Debug(fmt.Sprintf("features config file not found: \"%s\"", featuresFilePath))
+			slog.Debug(fmt.Sprintf("features config file not found: '%s'", featuresFilePath))
 			return nil, nil
 		}
 		return nil, err
@@ -160,7 +156,8 @@ func GetFeaturesFromFile(featuresFilePath string) (*conf.Features, error) {
 	var tempConf conf.Conf
 	configMetadata, err := toml.DecodeFile(featuresFilePath, &tempConf)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse features from drop-in config file: \"%s\": %w", featuresFilePath, err)
+		return nil, fmt.Errorf("failed to parse features from drop-in config file: '%s': %w",
+			featuresFilePath, err)
 	}
 
 	// Check for invalid features in the config file
@@ -168,7 +165,8 @@ func GetFeaturesFromFile(featuresFilePath string) (*conf.Features, error) {
 	// instead of "remote-management"
 	invalidFeatures := getUndecodedConfigKeys(configMetadata)
 	if len(invalidFeatures) > 0 {
-		slog.Warn(fmt.Sprintf("ignoring unknown feature(s) found in drop-in config file: %s", strings.Join(invalidFeatures, ", ")))
+		slog.Warn(fmt.Sprintf("ignoring unknown feature(s) found in drop-in config file: %s",
+			strings.Join(invalidFeatures, ", ")))
 	}
 
 	return &tempConf.Features, nil

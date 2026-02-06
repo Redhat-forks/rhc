@@ -108,6 +108,7 @@ func beforeAction(c *cli.Context) error {
 		slog.Warn(fmt.Sprintf("failed to get features from drop-in config file: %s", err.Error()))
 	}
 	if featuresConfig != nil {
+		slog.Debug(fmt.Sprintf("Loaded features from drop-in config file: %v", FeaturesConfigFilePath))
 		conf.Config.Features = *featuresConfig
 	}
 

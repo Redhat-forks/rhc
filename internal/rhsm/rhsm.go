@@ -22,10 +22,19 @@ import (
 
 const EnvTypeContentTemplate = "content-template"
 
+// GetConsumerUUID returns UUID of the consumer (system) registered against Red Hat Subscription Management
 func GetConsumerUUID() (string, error) {
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		return "", err
+	}
+	if conn != nil {
+		defer func(conn *dbus.Conn) {
+			err := conn.Close()
+			if err != nil {
+				slog.Warn(fmt.Sprintf("Failed to close D-Bus connection: %v", err))
+			}
+		}(conn)
 	}
 
 	locale := localization.GetLocale()
@@ -40,6 +49,38 @@ func GetConsumerUUID() (string, error) {
 		return "", UnpackDBusError(err)
 	}
 	return uuid, nil
+}
+
+// IsContentEnabled returns true if content is enabled for the system in rhsm.conf
+func IsContentEnabled() (bool, error) {
+	conn, err := dbus.SystemBus()
+	if err != nil {
+		return false, fmt.Errorf("cannot connect to system D-Bus: %w", err)
+	}
+	if conn != nil {
+		defer func(conn *dbus.Conn) {
+			err := conn.Close()
+			if err != nil {
+				slog.Warn(fmt.Sprintf("Failed to close D-Bus connection: %v", err))
+			}
+		}(conn)
+	}
+
+	locale := localization.GetLocale()
+
+	config := conn.Object("com.redhat.RHSM1", "/com/redhat/RHSM1/Config")
+
+	var contentEnabled string
+	if err := config.Call(
+		"com.redhat.RHSM1.Config.Get",
+		0,
+		"rhsm.manage_repos",
+		locale).Store(&contentEnabled); err != nil {
+		slog.Warn(fmt.Sprintf("Failed to get rhsm.manage_repos config: %v", err))
+		return false, UnpackDBusError(err)
+	}
+
+	return contentEnabled == "1", nil
 }
 
 // Organization is structure containing information about RHSM organization (sometimes called owner)
@@ -96,6 +137,14 @@ func registerUsernamePassword(username, password, organization string, environme
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		return orgs, err
+	}
+	if conn != nil {
+		defer func(conn *dbus.Conn) {
+			err := conn.Close()
+			if err != nil {
+				slog.Warn(fmt.Sprintf("Failed to close D-Bus connection: %v", err))
+			}
+		}(conn)
 	}
 
 	uuid, err := GetConsumerUUID()
@@ -207,6 +256,14 @@ func registerActivationKey(orgID string, activationKeys []string, environments [
 	if err != nil {
 		return err
 	}
+	if conn != nil {
+		defer func(conn *dbus.Conn) {
+			err := conn.Close()
+			if err != nil {
+				slog.Warn(fmt.Sprintf("Failed to close D-Bus connection: %v", err))
+			}
+		}(conn)
+	}
 
 	uuid, err := GetConsumerUUID()
 	if err != nil {
@@ -279,6 +336,14 @@ func Unregister() error {
 	conn, err := dbus.SystemBus()
 	if err != nil {
 		return err
+	}
+	if conn != nil {
+		defer func(conn *dbus.Conn) {
+			err := conn.Close()
+			if err != nil {
+				slog.Warn(fmt.Sprintf("Failed to close D-Bus connection: %v", err))
+			}
+		}(conn)
 	}
 
 	uuid, err := GetConsumerUUID()
