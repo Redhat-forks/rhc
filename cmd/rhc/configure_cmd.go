@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/redhatinsights/rhc/internal/conf"
 	"github.com/redhatinsights/rhc/internal/features"
 	"github.com/urfave/cli/v2"
 )
@@ -27,12 +28,44 @@ func beforeEnableFeaturesAction(ctx *cli.Context) error {
 	return nil
 }
 
-// enableFeaturesAction enables features
+// enableFeaturesAction tries to enables features
 func enableFeaturesAction(ctx *cli.Context) error {
 	args := ctx.Args()
-	for _, arg := range args.Slice() {
-		slog.Info(fmt.Sprintf("Enabling feature: %s", arg))
+	enabledFeatures := args.Slice()
+	var disabledFeatures []string
+
+	// First, validate provided features
+	err := features.ValidateSelectedFeatures(&enabledFeatures, &disabledFeatures)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("failed to validate features: %s", err.Error()))
+		return cli.Exit(err, ExitCodeDataErr)
 	}
+
+	// Log the enabled features
+	for _, feature := range enabledFeatures {
+		slog.Debug(fmt.Sprintf("Trying to enable feature: %s", feature))
+	}
+
+	// Then check that enabled features are not in conflict with the configuration file
+	enabledFeatures, disabledFeatures, err = features.ConsolidateSelectedFeatures(
+		&conf.Config,
+		enabledFeatures,
+		disabledFeatures,
+	)
+	if err != nil {
+		slog.Warn(fmt.Sprintf("failed to consolidate selected features: %s", err.Error()))
+		return cli.Exit(err, ExitCodeDataErr)
+	}
+
+	slog.Debug("Consolidated features")
+	// Log results of consolidation
+	for _, feature := range enabledFeatures {
+		slog.Debug(fmt.Sprintf("Feature '%s' will be enabled", feature))
+	}
+	for _, feature := range disabledFeatures {
+		slog.Debug(fmt.Sprintf("Feature '%s' will be disabled", feature))
+	}
+
 	return nil
 }
 
